@@ -5,63 +5,78 @@ services:
     image: sermalenk/skypro-front:lesson-34
     container_name: frontend
     ports:
-      - "80:80"
+      - "88:80"
     restart: always
     depends_on:
-      - api
+      api:
+        condition: service_started
 
 
   api:
-    build: . # тут одну точку или вот так еще можно ''./''
-      # dockerfile: Dockerfile # тут не уверен что уж нужно
-    # Задание имени контейнера для сервиса django
-#    container_name:
+    # Сборка образа для сервиса django из текущей директории
+    build: .
+    container_name: api
     command: python manage.py runserver 0.0.0.0:8000
+    env_file: .env.test
+    environment:
+      SQL_DB_HOST: pgdb
+      SQL_DB_PORT: 5432
+      SQL_DB_NAME: ${SQL_DB_NAME}
+      SQL_DB_USER: ${SQL_DB_USER}
+      SQL_DB_PASSWORD: ${SQL_DB_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG}
+      SOCIAL_AUTH_VK_OAUTH2_KEY: ${SOCIAL_AUTH_VK_OAUTH2_KEY}
+      SOCIAL_AUTH_VK_OAUTH2_SECRET: ${SOCIAL_AUTH_VK_OAUTH2_SECRET}
+    restart: always
+    depends_on:
+      pgdb:
+        condition: service_healthy
     ports:
       - "8000:8000"
     volumes:
       - .:/app
-
-    depends_on:
-      db:
-        condition: service_healthy
 
 
   migrations:
     build:
       context: .
     container_name: migrations
-
+    environment:
+      SQL_DB_HOST: pgdb
+      SQL_DB_PORT: 5432
+      SQL_DB_NAME: ${SQL_DB_NAME}
+      SQL_DB_USER: ${SQL_DB_USER}
+      SQL_DB_PASSWORD: ${SQL_DB_PASSWORD}
     depends_on:
       api:
         condition: service_started
-      db:
+      pgdb:
         condition: service_healthy
     command: python manage.py migrate
 
-  db:
+  pgdb:
     # Использование готового образа postgres
     image: postgres:15.2
     # Задание переменных окружения для контейнера с postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${SQL_DB_NAME}
+      POSTGRES_USER: ${SQL_DB_USER}
+      POSTGRES_PASSWORD: ${SQL_DB_PASSWORD}
     restart: always
-     # Задание имени контейнера для сервиса db
-    container_name: db
+     # Задание имени контейнера для сервиса pgdb
+    container_name: pgdb
      # Связывание тома с директорией в контейнере для сохранения данных postgres
     volumes:
-      - db_data:/var/lib/postgresql/data/
+      - pgdb_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
-      # test: ["CMD-SHELL", "pg_isready -U ${SQL_DB_USER} -d ${SQL_DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${SQL_DB_USER} -d ${SQL_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 15
 
 volumes:
-  db_data:
+  pgdb_data:
   frontend:
