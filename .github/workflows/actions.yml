@@ -22,33 +22,29 @@ jobs:
             docker build -t sergdef/timur:${GITHUB_REF_NAME}-${GITHUB_RUN_ID} .
             docker push sergdef/timur:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
 
-#  deploy:
-#    needs: build_and_push
-#    runs-on: ubuntu-20.04
-#    env:
-#      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-#      POSTGRES_PASSWORD: ${{ secrets.PASSWORD }}
-#      POSTGRES_USER: ${{ secrets.USERNAME }}
-#    steps:
-#      - name: Clone Code
-#        uses: actions/checkout@v3.5.2
-#
-#      - name: Render configs
-#        run: |-
-#          mkdir deploy_ci
-#          cat docker-compose-ci.yaml | envsubst > deploy_ci/docker-compose.yaml
-#          cat .env | envsubst > deploy_ci/.env
-#
-#      # ========= BEGIN SSH EXIT ==========
-#      - name: Copy on Server
-#        uses: appleboy/scp-action@v0.1.4
-#        with:
-#          host: ${{ secrets.HOST}}
-#          username: ${{ secrets.SSH_USER }}
-#          password: ${{ secrets.SSH_PASSWORD }}
-#          source: "deploy_ci/docker-compose.yaml, deploy_ci/.env"
-#          target: "deploy_ci"
-#          strip_components: 1
+  deploy:
+    needs: build_and_push
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Clone Code
+        uses: actions/checkout@v3.5.2
+
+      - name: Render configs
+        run: |-
+          mkdir deploy_ci
+          cat docker-compose-ci.yaml | envsubst > deploy_ci/docker-compose.yaml
+          cat .env | envsubst > deploy_ci/.env
+
+      # ========= BEGIN SSH EXIT ==========
+      - name: Copy on Server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.HOST}}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          source: "deploy_ci/docker-compose.yaml, deploy_ci/.env"
+          target: "deploy_ci"
+          strip_components: 1
 #
 #      # ========== START DOCKER CONTAINER ==========
 #      - name: deploy app
