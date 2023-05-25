@@ -1,89 +1,62 @@
 version: "3.9"
 
 services:
-  frontend:
-    networks:
-      - my-network
-    image: sermalenk/skypro-front:lesson-34
-    restart: always
-    depends_on:
-      - api
-    ports:
-      - "80:80"
-
-
-  api:
-#    image: charfull/cw_7:${GIT_HUB_REF_NAME}-${GIT_HUB_RUN_ID}
-    networks:
-      - my-network
-    image: charfull/cw_7:${GIT_HUB_REF_NAME}-${GIT_HUB_RUN_ID}
-    restart: always
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
-
-
-  migrations:
-    networks:
-      - my-network
-#    image: charfull/cw_7:${GIT_HUB_REF_NAME}-${GIT_HUB_RUN_ID}
-    image: charfull/cw_7:${GIT_HUB_REF_NAME}-${GIT_HUB_RUN_ID}
-    depends_on:
-      db:
-        condition: service_healthy
-#    env_file:
-#      - .env
-#    environment:
-#      POSTGRES_DB: ${DB_NAME}
-#      POSTGRES_USER: ${DB_USER}
-#      POSTGRES_PASSWORD: ${DB_PASSWORD}
-#      SECRET_KEY: ${SECRET_KEY}
-#      POSTGRES_HOST: "db"#
-    environment:
-      POSTGRES_DB: "postgres"
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-      SECRET_KEY: "'django-insecure-x!$*ildyg1*i&o*%np3l7m*a!shaa_p9f1734c1gzxj0#(nb-5'"
-      POSTGRES_HOST: "db"
-    command: sh -c "python ./manage.py migrate"
-
-  db:
-    networks:
-      - my-network
+  pgdb:
     # Использование готового образа postgres
-    image: postgres:latest
-    restart: always
-
+    image: postgres:15.2
     # Задание переменных окружения для контейнера с postgres
     ports:
-      - "5432:5432"
-    env_file:
-      - .env
-#    environment:
-#      POSTGRES_DB: ${DB_NAME}
-#      POSTGRES_USER: ${DB_USER}
-#      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      - "5433:5432"
     environment:
-      POSTGRES_DB: "postgres"
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-
-
+      POSTGRES_DB: ${SQL_DB_NAME}
+      POSTGRES_USER: ${SQL_DB_USER}
+      POSTGRES_PASSWORD: ${SQL_DB_PASSWORD}
+    restart: always
+     # Задание имени контейнера для сервиса pgdb
+    container_name: pgdb
      # Связывание тома с директорией в контейнере для сохранения данных postgres
     volumes:
-      - db_data:/var/lib/postgresql/data/
+      - pgdb_data:/var/lib/postgresql/data/
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${SQL_DB_USER} -d ${SQL_DB_NAME}"]
       interval: 5s
       timeout: 5s
       retries: 15
 
-volumes:
-  db_data:
+  api:
+#    build: .
+    image: sergdef/timur:${GITHUB_REF_NAME}-${GITHUB_RUN_ID}
+    container_name: api
+    command: gunicorn todolist.wsgi:application --bind 0.0.0.0:8000
+    env_file: .env.test
+    environment:
+      SQL_DB_HOST: pgdb
+      SQL_DB_PORT: 5432
+      SQL_DB_NAME: ${SQL_DB_NAME}
+      SQL_DB_USER: ${SQL_DB_USER}
+      SQL_DB_PASSWORD: ${SQL_DB_PASSWORD}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG}
+    restart: always
+    depends_on:
+      pgdb:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
 
-networks:
-  my-network:
+  frontend:
+    image: sermalenk/skypro-front:lesson-34
+    container_name: frontend
+    restart: always
+    ports:
+      - "88:80"
+    depends_on:
+      api:
+        condition: service_started
+
+
+
+volumes:
+  pgdb_data:

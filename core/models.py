@@ -3,5 +3,6 @@ from django.db import models
 
 
 class User(AbstractUser):
-    pass
     # REQUIRED_FIELDS = []
+    pass
+
