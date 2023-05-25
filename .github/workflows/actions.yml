@@ -51,27 +51,27 @@ jobs:
           source: "deploy_ci/docker-compose.yaml, deploy_ci/.env"
           target: "deploy_ci"
           strip_components: 1
-#
-#      # ========== START DOCKER CONTAINER ==========
-#      - name: deploy app
-#        uses: appleboy/ssh-action@v0.1.10
-#        with:
-#          host: ${{ secrets.HOST }}
-#          username: ${{ secrets.SSH_USER }}
-#          password: ${{ secrets.SSH_PASSWORD }}
-#          script: |-
-#            whoami
-#            cd deploy_ci
-#            echo ${{ secrets.SSH_PASSWORD }} | sudo -S docker-compose up -d
-#
-#
-#      # ========= REMOVING INACTIVE IMAGES ============
-#      - name: Removing Images
-#        uses: appleboy/ssh-action@v0.1.10
-#        with:
-#          host: ${{ secrets.HOST }}
-#          username: ${{ secrets.SSH_USER }}
-#          password: ${{ secrets.SSH_PASSWORD }}
-#          script: |
-#            docker system prune -a -f
-#
+
+      # ========== START DOCKER CONTAINER ==========
+      - name: deploy app
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |-
+            whoami
+            cd deploy_ci
+            echo ${{ secrets.SSH_PASSWORD }} | sudo -S docker-compose up -d
+
+
+      # ========= REMOVING INACTIVE IMAGES ============
+      - name: Removing Images
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            docker system prune -a -f
+
