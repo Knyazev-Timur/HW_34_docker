@@ -12,6 +12,7 @@
 !Dockerfile
 !.env.dev
 !.env.prod
+!.env
 !.env.test
 !django_media
 !entrypoint.sh
